@@ -19,79 +19,79 @@ async function addTask() {
     };
 
     try {
-        await fetch(MOCKAPI_URL, {
+        let response = await fetch(MOCKAPI_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newTask)
         });
-        loadTasks(); // Recharger les tâches après l'ajout
+        let createdTask = await response.json();
+        renderTask(createdTask); // 🔥 On ajoute seulement la nouvelle tâche
     } catch (error) {
         console.error("Erreur lors de l'ajout :", error);
     }
 }
 
-// Variable pour stocker l'état précédent et éviter les rechargements inutiles
-let previousTasks = [];
+// Stocker les tâches existantes pour éviter les doublons
+let taskCache = new Map();
 
 async function loadTasks() {
     try {
         let response = await fetch(MOCKAPI_URL);
         let tasks = await response.json();
 
-        // Trier les tâches par priorité (1 = plus urgent)
+        // Trier les tâches par priorité
         tasks.sort((a, b) => a.priority - b.priority);
 
-        // Vérifier si les tâches ont changé pour éviter le clignotement
-        if (JSON.stringify(previousTasks) !== JSON.stringify(tasks)) {
-            previousTasks = tasks;
-            renderTasks(tasks);
-        }
+        tasks.forEach(taskObj => {
+            if (!taskCache.has(taskObj.id)) {
+                taskCache.set(taskObj.id, taskObj);
+                renderTask(taskObj);
+            }
+        });
     } catch (error) {
         console.error("Erreur lors du chargement :", error);
     }
-
-    setTimeout(loadTasks, 3000); // Rafraîchir toutes les 3 secondes
 }
 
-// Fonction pour afficher les tâches
-function renderTasks(tasks) {
+// 🔥 Fonction pour ajouter une tâche sans clignotement
+function renderTask(taskObj) {
     let taskList = document.getElementById("taskList");
-    taskList.innerHTML = ""; // Efface uniquement si les tâches ont changé
 
-    tasks.forEach(taskObj => {
-        let li = document.createElement("li");
-        li.className = "task-item";
+    let li = document.createElement("li");
+    li.className = "task-item";
+    li.setAttribute("data-id", taskObj.id); // On garde l'ID pour éviter les doublons
 
-        let now = new Date().getTime();
-        let remainingTime = Math.max(new Date(taskObj.deadline).getTime() - now, 0);
-        let totalTime = new Date(taskObj.deadline).getTime() - new Date().setHours(0, 0, 0, 0);
-        let progress = totalTime > 0 ? (100 - (remainingTime / totalTime) * 100) : 100;
+    let now = new Date().getTime();
+    let remainingTime = Math.max(new Date(taskObj.deadline).getTime() - now, 0);
+    let totalTime = new Date(taskObj.deadline).getTime() - new Date().setHours(0, 0, 0, 0);
+    let progress = totalTime > 0 ? (100 - (remainingTime / totalTime) * 100) : 100;
 
-        let priorityColors = ["#ff0000", "#ff6600", "#ffcc00", "#99cc00", "#339900", "#006600"];
-        let priorityColor = priorityColors[taskObj.priority - 1] || "#999";
+    let priorityColors = ["#ff0000", "#ff6600", "#ffcc00", "#99cc00", "#339900", "#006600"];
+    let priorityColor = priorityColors[taskObj.priority - 1] || "#999";
 
-        li.style.borderLeft = `8px solid ${priorityColor}`;
+    li.style.borderLeft = `8px solid ${priorityColor}`;
 
-        li.innerHTML = `
-            <div>
-                <strong>${taskObj.task}</strong>
-                <br>
-                <small>Échéance : ${new Date(taskObj.deadline).toLocaleString()}</small>
-                <div class="progress-bar"><div style="width: ${progress}%; background: ${priorityColor};"></div></div>
-            </div>
-            <button class="delete-btn" onclick="deleteTask('${taskObj.id}')">X</button>
-        `;
+    li.innerHTML = `
+        <div>
+            <strong>${taskObj.task}</strong>
+            <br>
+            <small>Échéance : ${new Date(taskObj.deadline).toLocaleString()}</small>
+            <div class="progress-bar"><div style="width: ${progress}%; background: ${priorityColor};"></div></div>
+        </div>
+        <button class="delete-btn" onclick="deleteTask('${taskObj.id}', this)">X</button>
+    `;
 
-        taskList.appendChild(li);
-    });
+    taskList.appendChild(li);
 }
 
-async function deleteTask(id) {
+// 🔥 Suppression instantanée sans recharger toute la liste
+async function deleteTask(id, element) {
     try {
         await fetch(`${MOCKAPI_URL}/${id}`, {
             method: "DELETE"
         });
-        loadTasks();
+        taskCache.delete(id); // Supprime de la mémoire cache
+        element.closest(".task-item").remove(); // Supprime l'élément HTML
     } catch (error) {
         console.error("Erreur lors de la suppression :", error);
     }
