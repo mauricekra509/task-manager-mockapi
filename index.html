@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion des Tâches</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Gestion des Tâches</h1>
+        
+        <div class="task-form">
+            <input type="text" id="taskInput" placeholder="Ajouter une tâche..." required>
+            <input type="datetime-local" id="deadlineInput" required>
+            <select id="priorityInput">
+                <option value="1">1 - Très Urgent (Rouge)</option>
+                <option value="2">2 - Urgent (Orange)</option>
+                <option value="3">3 - Important (Jaune)</option>
+                <option value="4">4 - Moyenne (Vert Clair)</option>
+                <option value="5">5 - Faible (Vert Moyen)</option>
+                <option value="6">6 - Très Faible (Vert Foncé)</option>
+            </select>
+            <button onclick="addTask()">Ajouter</button>
+        </div>
+
+        <ul id="taskList"></ul>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
